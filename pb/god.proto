@@ -1,0 +1,51 @@
+syntax = "proto3";
+option go_package = "pb";
+
+message JobDesc {
+  string cmd = 1;
+  int32 concurrent = 2;
+  int32 interval = 3;
+  repeated string agent = 4; 
+}
+
+message RunJobRequest {
+  int64 id = 1;
+  JobDesc desc = 2;
+}
+
+message RunJobResponse {
+  int32 code = 1;
+  string body = 2;
+  bool stoped = 3;
+}
+
+
+service GodAgent {
+  rpc RunJob(RunJobRequest) returns (stream RunJobResponse);
+}
+
+
+message SubmitJobRequest {
+  JobDesc desc = 1;
+}
+
+message SubmitJobResponse {
+}
+
+message StopJobRequest{
+}
+
+message StopJobResponse{
+}
+
+message ShowJobRequest {
+}
+
+message ShowJobResponse {
+}
+
+service GodMaster {
+  rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse);
+  rpc StopJob(StopJobRequest) returns (StopJobResponse);
+  rpc ShowJob(ShowJobRequest) returns (ShowJobResponse);
+}
