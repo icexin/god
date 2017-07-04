@@ -20,8 +20,8 @@ func TestGodMasterService(t *testing.T) {
 		Desc: &pb.JobDesc{
 			Concurrent: 2,
 			Interval:   2,
-			Cmd:        "sleep 1",
-			Agent:      []string{"127.0.0.1:8080", "127.0.0.1:8080", "127.0.0.1:8080"},
+			Cmd:        "date && ls /",
+			Agent:      []string{"127.0.0.1:8080"},
 		},
 	}
 	_, err = client.SubmitJob(context.TODO(), req)

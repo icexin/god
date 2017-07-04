@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/icexin/god/pb"
+	"github.com/jmoiron/sqlx"
 	"google.golang.org/grpc"
 )
 
@@ -17,13 +18,15 @@ type JobTracker struct {
 	ch   chan string
 	wait sync.WaitGroup
 	idx  int
+	db   *sqlx.DB
 }
 
-func NewJobTracker(id int64, desc pb.JobDesc) *JobTracker {
+func NewJobTracker(id int64, desc pb.JobDesc, db *sqlx.DB) *JobTracker {
 	return &JobTracker{
 		id:   id,
 		desc: desc,
 		ch:   make(chan string),
+		db:   db,
 	}
 }
 
@@ -37,11 +40,21 @@ func (j *JobTracker) pickAgent() string {
 }
 
 func (j *JobTracker) updateAgentOutput(agent, content string) error {
-	return nil
+	_, err := j.db.Exec("UPDATE `task` SET output=output||? WHERE jobid=? and agent=?",
+		content, j.id, agent)
+	if err != nil {
+		log.Printf("update error:%s", err)
+	}
+	return err
 }
 
 func (j *JobTracker) recordJobFinished() error {
-	log.Printf("%d finished", j.id)
+	_, err := j.db.Exec("UPDATE `job` SET end_time=? WHERE id=?",
+		now(), j.id)
+	if err != nil {
+		return err
+	}
+	log.Printf("job %d finished", j.id)
 	return nil
 }
 
@@ -89,6 +102,11 @@ func (j *JobTracker) runJob(agent string) error {
 		}
 		j.updateAgentOutput(agent, resp.Body)
 		if resp.Stoped {
+			_, err := j.db.Exec("UPDATE `task` SET status=?, end_time=?, exit_code=? WHERE jobid=? and agent=?",
+				agentStatusFinished, now(), resp.Code, j.id, agent)
+			if err != nil {
+				log.Printf("error when update agent:%s", err)
+			}
 			log.Printf("%s finished, code:%d", agent, resp.Code)
 		}
 	}
@@ -100,6 +118,12 @@ func (j *JobTracker) runJob(agent string) error {
 func (j *JobTracker) workloop() {
 	defer j.wait.Done()
 	for agent := range j.ch {
+		_, err := j.db.Exec("UPDATE `task` SET status=?, start_time=? WHERE jobid=? and agent=?",
+			agentStatusRunning, now(), j.id, agent)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
 		j.runJob(agent)
 	}
 }

@@ -30,6 +30,7 @@ message SubmitJobRequest {
 }
 
 message SubmitJobResponse {
+  int64 id = 1;
 }
 
 message StopJobRequest{

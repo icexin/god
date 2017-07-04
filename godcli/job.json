@@ -1,0 +1,6 @@
+{
+    "concurrent":1,
+    "interval":1,
+    "cmd":"sleep 10 && ls /",
+    "agent":["127.0.0.1:8080"]
+}
